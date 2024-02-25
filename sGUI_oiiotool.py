@@ -1,9 +1,10 @@
 import os
 import subprocess
 import sys
+import threading
 
-from PySide6.QtCore import QMimeData, Qt
-from PySide6.QtGui import QColor, QDragEnterEvent, QDropEvent
+from PySide6.QtCore import QMimeData, Qt, QTimer
+from PySide6.QtGui import QDragEnterEvent, QDropEvent
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -18,7 +19,7 @@ from PySide6.QtWidgets import (
 )
 
 
-def convert_to_tx(input_file, output_file, add_runstats=False):
+def convert_to_tx_worker(input_file, output_file, add_runstats=False):
     command = ["oiiotool.exe", input_file, "-otex", output_file]
     if add_runstats:
         command.append("--runstats")
@@ -29,8 +30,16 @@ def convert_to_tx(input_file, output_file, add_runstats=False):
     return stdout, stderr
 
 
-def check_tx_file(tx_file):
-    command = ["iinfo.exe", "-v", tx_file]
+def convert_to_tx(input_file, output_file, add_runstats=False):
+    thread = threading.Thread(
+        target=convert_to_tx_worker, args=(input_file, output_file, add_runstats)
+    )
+    thread.start()
+    return thread
+
+
+def convert_tx_to_tif_worker(tx_file, output_tif):
+    command = ["oiiotool.exe", tx_file, "-o", output_tif]
     process = subprocess.Popen(
         command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
     )
@@ -39,13 +48,19 @@ def check_tx_file(tx_file):
 
 
 def convert_tx_to_tif(tx_file, output_tif):
-    command = ["oiiotool.exe", tx_file, "-o", output_tif]
+    thread = threading.Thread(
+        target=convert_tx_to_tif_worker, args=(tx_file, output_tif)
+    )
+    thread.start()
+    return thread
+
+def check_tx_file(tx_file):
+    command = ["iinfo.exe", "-v", tx_file]
     process = subprocess.Popen(
         command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
     )
     stdout, stderr = process.communicate()
     return stdout, stderr
-
 
 class DragDropWidget(QWidget):
     def __init__(self):
@@ -195,6 +210,10 @@ class DragDropWidget(QWidget):
             """
         )
 
+        # Creating QTimer for updating progress bar
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_progress_bar)
+
     def dragEnterEvent(self, event: QDragEnterEvent):
         if event.mimeData().hasUrls():
             event.accept()
@@ -232,30 +251,20 @@ class DragDropWidget(QWidget):
                         overwrite = self.confirm_overwrite(output_file_path)
                         if not overwrite:
                             continue
-                    stdout, stderr = convert_tx_to_tif(file_path, output_file_path)
+                    convert_tx_to_tif(file_path, output_file_path)
                     processed_files.append(output_file_path)
-                    if stderr:
-                        error_messages.append(stderr)
-                    if stdout:
-                        console_output.append(stdout)
                 else:
                     output_file_path = os.path.splitext(file_path)[0] + ".tx"
                     if os.path.exists(output_file_path):
                         overwrite = self.confirm_overwrite(output_file_path)
                         if not overwrite:
                             continue
-                    stdout, stderr = convert_to_tx(
-                        file_path, output_file_path, self.checkbox1.isChecked()
-                    )
+                    convert_to_tx(file_path, output_file_path, self.checkbox1.isChecked())
                     processed_files.append(output_file_path)
-                    if stderr:
-                        error_messages.append(stderr)
-                    if stdout:
-                        console_output.append(stdout)
 
                 files_processed += 1
-                progress = int((files_processed / total_files) * 100)
-                self.progress_bar.setValue(progress)
+                self.progress_bar.setValue(int((files_processed / total_files) * 100))
+                self.timer.start(100)
 
                 console_output.append(f"File {file_path} has been processed.")
 
@@ -303,6 +312,13 @@ class DragDropWidget(QWidget):
 
     def update_console_text(self, text):
         self.console_text_edit.setPlainText(text)
+
+    def update_progress_bar(self):
+        value = self.progress_bar.value() + 1
+        if value > 100:
+            self.timer.stop()
+        else:
+            self.progress_bar.setValue(value)
 
 
 if __name__ == "__main__":
