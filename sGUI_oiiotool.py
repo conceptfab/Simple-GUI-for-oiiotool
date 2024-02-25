@@ -132,7 +132,6 @@ class DragDropWidget(QWidget):
                 """
                 QCheckBox {
                     color: #FFFFFF;
-                    
                     font-family: 'Dank Mono', Arial;
                     font-size: 12px;
                     spacing: 10px;
@@ -326,7 +325,7 @@ class DragDropWidget(QWidget):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     widget = DragDropWidget()
-    widget.setWindowTitle("Simple GUI for oiiotool 0.25")
+    widget.setWindowTitle("Simple GUI for oiiotool 0.26")
     widget.resize(800, 600)
     widget.show()
     sys.exit(app.exec())
