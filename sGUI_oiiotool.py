@@ -17,6 +17,35 @@ from PySide6.QtWidgets import (
 )
 
 
+def convert_to_tx(input_file, output_file, add_runstats=False):
+    command = ["oiiotool.exe", input_file, "-otex", output_file]
+    if add_runstats:
+        command.append("--runstats")
+    process = subprocess.Popen(
+        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+    )
+    stdout, stderr = process.communicate()
+    return stdout, stderr
+
+
+def check_tx_file(tx_file):
+    command = ["iinfo.exe", "-v", tx_file]
+    process = subprocess.Popen(
+        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+    )
+    stdout, stderr = process.communicate()
+    return stdout, stderr
+
+
+def convert_tx_to_tif(tx_file, output_tif):
+    command = ["oiiotool.exe", tx_file, "-o", output_tif]
+    process = subprocess.Popen(
+        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+    )
+    stdout, stderr = process.communicate()
+    return stdout, stderr
+
+
 class DragDropWidget(QWidget):
     def __init__(self):
         super().__init__()
@@ -139,56 +168,47 @@ class DragDropWidget(QWidget):
             processed_files = []
             error_messages = []  # Storing error messages
             console_output = []  # Storing console output
-            convert_to_tif = (
-                self.checkbox2.isChecked()
-            )  # Check the state of "convert tx to tif" checkbox
 
             for url in urls:
                 file_path = url.toLocalFile()
-                if file_path.endswith(".tx"):
-                    if convert_to_tif:
-                        output_file_path = os.path.splitext(file_path)[0] + ".tif"
-                        if os.path.exists(output_file_path):
-                            overwrite = self.confirm_overwrite(output_file_path)
-                            if not overwrite:
-                                continue
-                        command = ["oiiotool.exe", file_path, "-o", output_file_path]
-                    else:
-                        output_file_path = (
-                            file_path  # Don't change extension, keep it .tx
-                        )
-                        command = ["iinfo.exe", "-v", file_path]
-                else:
-                    output_file_path = os.path.splitext(file_path)[0] + (
-                        ".tif" if convert_to_tif else ".tx"
-                    )
+
+                if not os.path.exists(file_path):
+                    error_messages.append(f"File not found: {file_path}")
+                    continue
+
+                if file_path.endswith(".tx") and not self.checkbox2.isChecked():
+                    stdout, stderr = check_tx_file(file_path)
+                    processed_files.append(file_path)
+                    if stderr:
+                        error_messages.append(stderr)  # Add error message to the list
+                    if stdout:
+                        console_output.append(stdout)
+                elif file_path.endswith(".tx") and self.checkbox2.isChecked():
+                    output_file_path = os.path.splitext(file_path)[0] + ".tif"
                     if os.path.exists(output_file_path):
                         overwrite = self.confirm_overwrite(output_file_path)
                         if not overwrite:
                             continue
-                    command = ["oiiotool.exe", file_path]
-                    for checkbox in [
-                        self.checkbox1,
-                    ]:
-                        if checkbox.isChecked():
-                            command.append(checkbox.text())
-                    command += ["-otex", output_file_path]
-
-                process = subprocess.Popen(
-                    command,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True,
-                )
-                stdout, stderr = process.communicate()
-
-                processed_files.append(output_file_path)
-                if stderr:
-                    error_messages.append(stderr)  # Add error message to the list
-
-                # Add standard output result (stdout) to the list
-                if stdout:
-                    console_output.append(stdout)
+                    stdout, stderr = convert_tx_to_tif(file_path, output_file_path)
+                    processed_files.append(output_file_path)
+                    if stderr:
+                        error_messages.append(stderr)  # Add error message to the list
+                    if stdout:
+                        console_output.append(stdout)
+                else:
+                    output_file_path = os.path.splitext(file_path)[0] + ".tx"
+                    if os.path.exists(output_file_path):
+                        overwrite = self.confirm_overwrite(output_file_path)
+                        if not overwrite:
+                            continue
+                    stdout, stderr = convert_to_tx(
+                        file_path, output_file_path, self.checkbox1.isChecked()
+                    )
+                    processed_files.append(output_file_path)
+                    if stderr:
+                        error_messages.append(stderr)  # Add error message to the list
+                    if stdout:
+                        console_output.append(stdout)
 
                 # Add confirmation in console
                 console_output.append(f"File {file_path} has been processed.")
@@ -240,7 +260,7 @@ class DragDropWidget(QWidget):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     widget = DragDropWidget()
-    widget.setWindowTitle("Simple GUI for oiiotool")
+    widget.setWindowTitle("Simple GUI for oiiotool 0.2")
     widget.resize(800, 600)
     widget.show()
     sys.exit(app.exec())
