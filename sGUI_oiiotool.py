@@ -7,6 +7,7 @@ from PySide6.QtGui import QColor, QDragEnterEvent, QDropEvent
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QMessageBox,
@@ -54,10 +55,12 @@ class DragDropWidget(QWidget):
         # Setting Fusion style for the whole application
         QApplication.setStyle("fusion")
 
-        # Creating label "Convert to TX file:"
         self.label = QLabel("Convert to TX file:")
         self.label.setAlignment(Qt.AlignCenter)
-        self.label.setStyleSheet("font-family: 'Dank Mono', Arial; font-size: 16px; color: #FFFFFF;")
+        self.label.setStyleSheet(
+            "font-family: 'Dank Mono', Arial; font-size: 16px; color: #FFFFFF;"
+        )
+        self.label.setMinimumHeight(50)  # Ustawienie minimalnej wysokości
 
         # Creating QTextEdit for status bar
         self.status_text_edit = QTextEdit()
@@ -66,13 +69,17 @@ class DragDropWidget(QWidget):
             """
             QTextEdit {
                 border: none;
-                background-color: #2c2c2c;
+                background-color: #242424;
                 color: #FFFFFF;
                 font-family: 'Dank Mono', Arial;
                 font-size: 12px;
             }
             """
         )
+        # Creating separator
+        separator = QFrame()
+        separator.setFrameShape(QFrame.VLine)
+        separator.setFrameShadow(QFrame.Sunken)
 
         # Creating QTextEdit for console information
         self.console_text_edit = QTextEdit()
@@ -117,7 +124,6 @@ class DragDropWidget(QWidget):
                 """
                 QCheckBox {
                     color: #FFFFFF;
-                
                     font-family: 'Dank Mono', Arial;
                     font-size: 12px;
                     spacing: 10px;
@@ -139,6 +145,7 @@ class DragDropWidget(QWidget):
 
         # Adding QTextEdit to layout
         layout.addWidget(self.status_text_edit)
+        layout.addWidget(separator)
         layout.addWidget(self.console_text_edit)
 
         # Adding progress bar to layout
@@ -153,6 +160,41 @@ class DragDropWidget(QWidget):
         # Setting default values for checkboxes
         self.checkbox1.setChecked(True)
         self.checkbox2.setChecked(False)
+
+        # Adding custom style for scroll bars
+        self.setStyleSheet(
+            """
+            QScrollBar:vertical {
+                border: none;
+                background: #2c2c2c;
+                width: 10px;
+                margin: 0px; /* Usunięcie marginesu */
+            }
+            QScrollBar::handle:vertical {
+                background-color: #8a2be2;
+                min-height: 20px;
+                border-radius: 5px;
+            }
+            QScrollBar::add-line:vertical {
+                height: 0;
+                subcontrol-position: bottom;
+                subcontrol-origin: margin;
+            }
+            QScrollBar::sub-line:vertical {
+                height: 0;
+                subcontrol-position: top;
+                subcontrol-origin: margin;
+            }
+            QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {
+                border: none;
+                background: none;
+                color: none;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                background: none;
+            }
+            """
+        )
 
     def dragEnterEvent(self, event: QDragEnterEvent):
         if event.mimeData().hasUrls():
