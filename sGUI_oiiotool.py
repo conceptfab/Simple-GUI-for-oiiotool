@@ -56,7 +56,7 @@ class DragDropWidget(QWidget):
             QWidget {
                 background-color: #333333; /* Background */
                 color: #FFFFFF; /* Text color */
-                font-family: 'dank Mono', Arial, sans-serif; /* Font family */
+                font-family: 'Dank Mono', Arial, sans-serif; /* Font family */
             }
 
             QScrollBar:vertical {
@@ -101,7 +101,7 @@ class DragDropWidget(QWidget):
                 font-size: 16px;
                 font-weight: bold;
                 margin-bottom: 10px;
-                font-family: 'dank Mono', Arial, sans-serif; /* Font family */
+                font-family: 'Dank Mono', Arial, sans-serif; /* Font family */
             }
         """
 
@@ -138,7 +138,7 @@ class DragDropWidget(QWidget):
                 border-radius: 5px;
                 background-color: #000000; /* Background */
                 color: #FFFFFF; /* Text color */
-                font-family: 'dank Mono', Arial, sans-serif; /* Font family */
+                font-family: 'Dank Mono', Arial, sans-serif; /* Font family */
             }
             """
         )
