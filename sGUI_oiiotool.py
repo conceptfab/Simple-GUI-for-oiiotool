@@ -43,7 +43,7 @@ class DragDropWidget(QWidget):
                 font-size: 16px;
                 font-weight: bold;
                 margin-bottom: 10px;
-                font-family: 'Dank Mono', sans-serif; /* Font family */
+                font-family: 'Dank Mono', Arial, sans-serif; /* Font family */
             }
         """
         )
@@ -56,7 +56,7 @@ class DragDropWidget(QWidget):
                 border: 1px solid #ccc;
                 border-radius: 5px;
                 padding: 5px;
-                font-family: 'Dank Mono', sans-serif; /* Font family */
+                font-family: 'Dank Mono', Arial, sans-serif; /* Font family */
             }
         """
         )
@@ -70,7 +70,7 @@ class DragDropWidget(QWidget):
                 border-radius: 5px;
                 padding: 5px;
                 color: #FFFFFF;
-                font-family: 'Dank Mono', monospace; /* Font family */
+                font-family: 'Dank Mono', Arial, sans-serif; /* Font family */
             }
         """
         )
@@ -101,7 +101,7 @@ class DragDropWidget(QWidget):
                 QCheckBox {
                     spacing: 10px; /* Spacing between text and button */
                     font-size: 12px; /* Text size */
-                    font-family: 'Dank Mono', monospace; /* Font family */
+                    font-family: 'Dank Mono', Arial, sans-serif; /* Font family */
                 }
             """
             )
