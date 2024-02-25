@@ -57,7 +57,7 @@ class DragDropWidget(QWidget):
         self.label = QLabel("Convert to TX file:")
         self.label.setAlignment(Qt.AlignCenter)
         self.label.setStyleSheet(
-            "font-family: 'Dank Mono', Arial; font-size: 16px; color: #FFFFFF;"
+            "font-family: 'Dank Mono', Arial; font-size: 16px; color: #2196f3;"
         )
         self.label.setMinimumHeight(50)  # Ustawienie minimalnej wysokości
 
@@ -108,7 +108,7 @@ class DragDropWidget(QWidget):
                 height: 10px; /* Height */
             }
             QProgressBar::chunk {
-                background-color: #8a2be2; /* Dodger Blue */
+                background-color: #2196f3; /* Dodger Blue */
             }
             """
         )
@@ -126,6 +126,9 @@ class DragDropWidget(QWidget):
                     font-family: 'Dank Mono', Arial;
                     font-size: 12px;
                     spacing: 10px;
+                }
+                QCheckBox::indicator:unchecked {
+                    background-color: #414141; /* Dodger Blue */
                 }
                 """
             )
@@ -308,7 +311,7 @@ class DragDropWidget(QWidget):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     widget = DragDropWidget()
-    widget.setWindowTitle("Simple GUI for oiiotool 0.25")
+    widget.setWindowTitle("Simple GUI for oiiotool 0.26")
     widget.resize(800, 600)
     widget.show()
     sys.exit(app.exec())
