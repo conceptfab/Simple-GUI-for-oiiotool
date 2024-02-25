@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMessageBox,
+    QProgressBar,
     QSizePolicy,
     QTextEdit,
     QVBoxLayout,
@@ -58,40 +59,6 @@ class DragDropWidget(QWidget):
                 color: #FFFFFF; /* Text color */
                 font-family: 'Dank Mono', Arial, sans-serif; /* Font family */
             }
-
-            QScrollBar:vertical {
-                border: none;
-                background: #555555;
-                width: 10px;
-                margin: 0px 0px 0px 0px;
-            }
-
-            QScrollBar::handle:vertical {
-                background: #888888;
-                min-height: 20px;
-            }
-
-            QScrollBar::add-line:vertical {
-                background: #555555;
-                height: 0px;
-                subcontrol-position: bottom;
-                subcontrol-origin: margin;
-            }
-
-            QScrollBar::sub-line:vertical {
-                background: #555555;
-                height: 0 px;
-                subcontrol-position: top;
-                subcontrol-origin: margin;
-            }
-
-            QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {
-                background: none;
-            }
-
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                background: none;
-            }
             """
         )
 
@@ -121,6 +88,14 @@ class DragDropWidget(QWidget):
                 background-color: #222222; /* Background */
                 color: #FFFFFF; /* Text color */
             }
+            QTextEdit::-webkit-scrollbar {
+                width: 8px;
+                background-color: #333333;
+            }
+            QTextEdit::-webkit-scrollbar-thumb {
+                background-color: #555555;
+                border-radius: 4px;
+            }
             """
         )
         self.status_text_edit.setMinimumHeight(50)  # Minimum height for QTextEdit
@@ -140,9 +115,37 @@ class DragDropWidget(QWidget):
                 color: #FFFFFF; /* Text color */
                 font-family: 'Dank Mono', Arial, sans-serif; /* Font family */
             }
+            QTextEdit::-webkit-scrollbar {
+                width: 8px;
+                background-color: #333333;
+            }
+            QTextEdit::-webkit-scrollbar-thumb {
+                background-color: #555555;
+                border-radius: 4px;
+            }
             """
         )
         self.console_text_edit.setMinimumHeight(50)  # Minimum height for QTextEdit
+
+        # Creating progress bar
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setStyleSheet(
+            """
+            QProgressBar {
+                border: none;
+                border-radius: 5px;
+                background-color: #222222; /* Background */
+                color: #FFFFFF; /* Text color */
+                height: 5px; /* Height */
+            }
+            QProgressBar::chunk {
+                background-color: #1E90FF; /* Dodger Blue */
+            }
+            """
+        )
+
+        # Adding text to progress bar
+        self.progress_bar.setTextVisible(False)
 
         # Creating layout
         layout = QVBoxLayout()
@@ -174,6 +177,9 @@ class DragDropWidget(QWidget):
         layout.addWidget(self.status_text_edit)
         layout.addWidget(self.console_text_edit)
 
+        # Adding progress bar to layout
+        layout.addWidget(self.progress_bar)
+
         # Setting layout
         self.setLayout(layout)
 
@@ -197,6 +203,9 @@ class DragDropWidget(QWidget):
             processed_files = []
             error_messages = []  # Storing error messages
             console_output = []  # Storing console data
+
+            total_files = len(urls)
+            files_processed = 0
 
             for url in urls:
                 file_path = url.toLocalFile()
@@ -239,6 +248,10 @@ class DragDropWidget(QWidget):
                     if stdout:
                         console_output.append(stdout)
 
+                files_processed += 1
+                progress = int((files_processed / total_files) * 100)
+                self.progress_bar.setValue(progress)
+
                 console_output.append(f"File {file_path} has been processed.")
 
             self.update_status_bar(processed_files, error_messages)
@@ -279,6 +292,9 @@ class DragDropWidget(QWidget):
             status_text += "\n".join(error_messages)
 
         self.status_text_edit.setPlainText(status_text)
+
+        # Reset progress bar
+        self.progress_bar.setValue(0)
 
     def update_console_text(self, text):
         self.console_text_edit.setPlainText(text)
