@@ -322,7 +322,7 @@ class DragDropWidget(QWidget):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     widget = DragDropWidget()
-    widget.setWindowTitle("Simple GUI for oiiotool 0.26")
+    widget.setWindowTitle("Simple GUI for oiiotool 0.30")
     widget.resize(800, 600)
     widget.show()
     sys.exit(app.exec())
