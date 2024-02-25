@@ -2,84 +2,22 @@ import os
 import subprocess
 import sys
 
-from PySide6.QtCore import Qt, QThread, Signal, QObject
+from PySide6.QtCore import QMimeData, Qt
+from PySide6.QtGui import QColor, QDragEnterEvent, QDropEvent, QFont
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
     QHBoxLayout,
     QLabel,
     QMessageBox,
+    QSizePolicy,
     QTextEdit,
     QVBoxLayout,
     QWidget,
 )
 
 
-class WorkerSignals(QObject):
-    result = Signal(tuple)
-
-
-class Worker(QThread):
-    def __init__(self, file_path, checkbox1_checked, checkbox2_checked):
-        super().__init__()
-        self.file_path = file_path
-        self.checkbox1_checked = checkbox1_checked
-        self.checkbox2_checked = checkbox2_checked
-        self.signals = WorkerSignals()
-
-    def run(self):
-        processed_files = []
-        error_messages = []
-        console_output = []
-
-        if not os.path.exists(self.file_path):
-            error_messages.append(f"File not found: {self.file_path}")
-        elif self.file_path.endswith(".tx") and not self.checkbox2_checked:
-            stdout, stderr = check_tx_file(self.file_path)
-            processed_files.append(self.file_path)
-            if stderr:
-                error_messages.append(stderr)
-            if stdout:
-                console_output.append(stdout)
-        elif self.file_path.endswith(".tx") and self.checkbox2_checked:
-            output_file_path = os.path.splitext(self.file_path)[0] + ".tif"
-            if os.path.exists(output_file_path):
-                overwrite = confirm_overwrite(output_file_path)
-                if not overwrite:
-                    self.signals.result.emit(([], ["User canceled overwrite"], []))
-                    return
-            stdout, stderr = convert_tx_to_tif(self.file_path, output_file_path)
-            processed_files.append(output_file_path)
-            if stderr:
-                error_messages.append(stderr)
-            if stdout:
-                console_output.append(stdout)
-        else:
-            output_file_path = os.path.splitext(self.file_path)[0] + ".tx"
-            if os.path.exists(output_file_path):
-                overwrite = confirm_overwrite(output_file_path)
-                if not overwrite:
-                    self.signals.result.emit(([], ["User canceled overwrite"], []))
-                    return
-            stdout, stderr = convert_to_tx(
-                self.file_path, output_file_path, self.checkbox1_checked
-            )
-            processed_files.append(output_file_path)
-            if stderr:
-                error_messages.append(stderr)
-            if stdout:
-                console_output.append(stdout)
-
-        console_output.append(f"File {self.file_path} has been processed.")
-        self.signals.result.emit((processed_files, error_messages, console_output))
-
-
 def convert_to_tx(input_file, output_file, add_runstats=False):
-    if os.path.exists(output_file):
-        overwrite = confirm_overwrite(output_file)
-        if not overwrite:
-            return "", "User canceled overwrite"
-
     command = ["oiiotool.exe", input_file, "-otex", output_file]
     if add_runstats:
         command.append("--runstats")
@@ -100,11 +38,6 @@ def check_tx_file(tx_file):
 
 
 def convert_tx_to_tif(tx_file, output_tif):
-    if os.path.exists(output_tif):
-        overwrite = confirm_overwrite(output_tif)
-        if not overwrite:
-            return "", "User canceled overwrite"
-
     command = ["oiiotool.exe", tx_file, "-o", output_tif]
     process = subprocess.Popen(
         command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
@@ -113,27 +46,17 @@ def convert_tx_to_tif(tx_file, output_tif):
     return stdout, stderr
 
 
-def confirm_overwrite(file_path):
-    msg_box = QMessageBox()
-    msg_box.setWindowTitle("Confirm Overwrite")
-    msg_box.setText(f"File {file_path} already exists. Do you want to overwrite it?")
-    msg_box.setIcon(QMessageBox.Warning)
-    msg_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
-    msg_box.setDefaultButton(QMessageBox.No)
-    response = msg_box.exec()
-    return response == QMessageBox.Yes
-
-
 class DragDropWidget(QWidget):
     def __init__(self):
         super().__init__()
 
+        # Setting dark style for the whole widget
         self.setStyleSheet(
             """
             QWidget {
-                background-color: #333333; 
-                color: #FFFFFF; 
-                font-family: 'dank Mono', Arial, sans-serif; 
+                background-color: #333333; /* Background */
+                color: #FFFFFF; /* Text color */
+                font-family: 'dank Mono', Arial, sans-serif; /* Font family */
             }
 
             QScrollBar:vertical {
@@ -172,19 +95,22 @@ class DragDropWidget(QWidget):
             """
         )
 
+        # Setting dark style for labels
         label_style = """
             QLabel {
                 font-size: 16px;
                 font-weight: bold;
                 margin-bottom: 10px;
-                font-family: 'dank Mono', Arial, sans-serif; 
+                font-family: 'dank Mono', Arial, sans-serif; /* Font family */
             }
         """
 
+        # Creating label "Convert to TX file:"
         self.label = QLabel("Convert to TX file:")
         self.label.setAlignment(Qt.AlignCenter)
         self.label.setStyleSheet(label_style)
 
+        # Creating QTextEdit for status bar
         self.status_text_edit = QTextEdit()
         self.status_text_edit.setReadOnly(True)
         self.status_text_edit.setStyleSheet(
@@ -192,87 +118,153 @@ class DragDropWidget(QWidget):
             QTextEdit {
                 border: 1px solid #272727;
                 border-radius: 5px;
-                background-color: #222222; 
-                color: #FFFFFF; 
+                background-color: #222222; /* Background */
+                color: #FFFFFF; /* Text color */
             }
             """
         )
-        self.status_text_edit.setMinimumHeight(50)
+        self.status_text_edit.setMinimumHeight(50)  # Minimum height for QTextEdit
 
+        # Creating QTextEdit for console information
         self.console_text_edit = QTextEdit()
         self.console_text_edit.setReadOnly(True)
+        self.console_text_edit.setSizePolicy(
+            QSizePolicy.Expanding, QSizePolicy.Expanding
+        )
         self.console_text_edit.setStyleSheet(
             """
             QTextEdit {
                 border: 1px solid #272727;
                 border-radius: 5px;
-                background-color: #000000; 
-                color: #FFFFFF; 
-                font-family: 'dank Mono', Arial, sans-serif; 
+                background-color: #000000; /* Background */
+                color: #FFFFFF; /* Text color */
+                font-family: 'dank Mono', Arial, sans-serif; /* Font family */
             }
             """
         )
-        self.console_text_edit.setMinimumHeight(50)
+        self.console_text_edit.setMinimumHeight(50)  # Minimum height for QTextEdit
 
+        # Creating layout
         layout = QVBoxLayout()
         layout.addWidget(self.label)
 
+        # Creating layout for checkboxes
         checkboxes_layout = QHBoxLayout()
         layout.addLayout(checkboxes_layout)
 
+        # Adding checkboxes
         self.checkbox1 = QCheckBox("--runstats")
         self.checkbox2 = QCheckBox("convert tx to tif")
 
+        # Setting style for checkboxes
         checkbox_style = """
             QCheckBox {
-                spacing: 10px; 
-                font-size: 12px; 
+                spacing: 10px; /* Spacing between text and button */
+                font-size: 12px; /* Text size */
             }
         """
         self.checkbox1.setStyleSheet(checkbox_style)
         self.checkbox2.setStyleSheet(checkbox_style)
 
+        # Adding checkboxes to layout
         checkboxes_layout.addWidget(self.checkbox1)
         checkboxes_layout.addWidget(self.checkbox2)
 
+        # Adding QTextEdit to layout
         layout.addWidget(self.status_text_edit)
         layout.addWidget(self.console_text_edit)
 
+        # Setting layout
         self.setLayout(layout)
 
+        # Setting drag and drop event handling
         self.setAcceptDrops(True)
 
+        # Setting default values for checkboxes
         self.checkbox1.setChecked(True)
         self.checkbox2.setChecked(False)
 
-    def dragEnterEvent(self, event):
+    def dragEnterEvent(self, event: QDragEnterEvent):
         if event.mimeData().hasUrls():
             event.accept()
         else:
             event.ignore()
 
-    def dropEvent(self, event):
-        if self.worker_thread and self.worker_thread.isRunning():
-            return
-
+    def dropEvent(self, event: QDropEvent):
         mime_data = event.mimeData()
         if mime_data.hasUrls():
             urls = mime_data.urls()
+            processed_files = []
+            error_messages = []  # Storing error messages
+            console_output = []  # Storing console data
+
             for url in urls:
                 file_path = url.toLocalFile()
-                self.worker_thread = Worker(
-                    file_path,
-                    self.checkbox1.isChecked(),
-                    self.checkbox2.isChecked(),
-                )
-                self.worker_thread.signals.result.connect(self.handle_worker_result)
-                self.worker_thread.start()
+
+                if not os.path.exists(file_path):
+                    error_messages.append(f"File not found: {file_path}")
+                    continue
+
+                if file_path.endswith(".tx") and not self.checkbox2.isChecked():
+                    stdout, stderr = check_tx_file(file_path)
+                    processed_files.append(file_path)
+                    if stderr:
+                        error_messages.append(stderr)
+                    if stdout:
+                        console_output.append(stdout)
+                elif file_path.endswith(".tx") and self.checkbox2.isChecked():
+                    output_file_path = os.path.splitext(file_path)[0] + ".tif"
+                    if os.path.exists(output_file_path):
+                        overwrite = self.confirm_overwrite(output_file_path)
+                        if not overwrite:
+                            continue
+                    stdout, stderr = convert_tx_to_tif(file_path, output_file_path)
+                    processed_files.append(output_file_path)
+                    if stderr:
+                        error_messages.append(stderr)
+                    if stdout:
+                        console_output.append(stdout)
+                else:
+                    output_file_path = os.path.splitext(file_path)[0] + ".tx"
+                    if os.path.exists(output_file_path):
+                        overwrite = self.confirm_overwrite(output_file_path)
+                        if not overwrite:
+                            continue
+                    stdout, stderr = convert_to_tx(
+                        file_path, output_file_path, self.checkbox1.isChecked()
+                    )
+                    processed_files.append(output_file_path)
+                    if stderr:
+                        error_messages.append(stderr)
+                    if stdout:
+                        console_output.append(stdout)
+
+                console_output.append(f"File {file_path} has been processed.")
+
+            self.update_status_bar(processed_files, error_messages)
+
+            if console_output:
+                self.update_console_text("\n".join(console_output))
+
             event.accept()
         else:
             event.ignore()
 
-    def handle_worker_result(self, result):
-        processed_files, error_messages, console_output = result
+    def confirm_overwrite(self, file_path):
+        msg_box = QMessageBox()
+        msg_box.setWindowTitle("Confirm Overwrite")
+        msg_box.setText(
+            f"File {file_path} already exists. Do you want to overwrite it?"
+        )
+        msg_box.setIcon(QMessageBox.Warning)
+        msg_box.setStandardButtons(
+            QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel
+        )
+        msg_box.setDefaultButton(QMessageBox.No)
+        response = msg_box.exec()
+        return response == QMessageBox.Yes
+
+    def update_status_bar(self, processed_files, error_messages):
         status_text = ""
         if processed_files:
             num_files = len(processed_files)
@@ -286,20 +278,16 @@ class DragDropWidget(QWidget):
             status_text += "\n\nErrors:\n"
             status_text += "\n".join(error_messages)
 
-        self.status_text_edit.clear()
-        self.status_text_edit.repaint()
         self.status_text_edit.setPlainText(status_text)
 
-        if console_output:
-            self.console_text_edit.clear()
-            self.console_text_edit.repaint()
-            self.console_text_edit.setPlainText("\n".join(console_output))
+    def update_console_text(self, text):
+        self.console_text_edit.setPlainText(text)
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     widget = DragDropWidget()
-    widget.setWindowTitle("Simple GUI for oiiotool 0.22")
+    widget.setWindowTitle("Simple GUI for oiiotool 0.25")
     widget.resize(800, 600)
     widget.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
