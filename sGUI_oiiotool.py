@@ -12,7 +12,6 @@ from PySide6.QtWidgets import (
     QLabel,
     QMessageBox,
     QProgressBar,
-    QSizePolicy,
     QTextEdit,
     QVBoxLayout,
     QWidget,
