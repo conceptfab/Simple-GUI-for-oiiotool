@@ -18,7 +18,9 @@ from PySide6.QtWidgets import (
 )
 
 
-def convert_to_tx(input_file: str, output_file: str, add_runstats: bool = False) -> tuple:
+def convert_to_tx(
+    input_file: str, output_file: str, add_runstats: bool = False
+) -> tuple:
     """
     Convert input file to a .tx file.
 
@@ -295,7 +297,9 @@ class DragDropWidget(QWidget):
                 overwrite = self.confirm_overwrite(output_file_path)
                 if not overwrite:
                     return stdout, stderr
-            stdout, stderr = convert_to_tx(file_path, output_file_path, self.checkbox1.isChecked())
+            stdout, stderr = convert_to_tx(
+                file_path, output_file_path, self.checkbox1.isChecked()
+            )
 
         return stdout, stderr
 
@@ -309,7 +313,6 @@ class DragDropWidget(QWidget):
         processed_files = []
         error_messages = []
         console_output = []
-        
         total_files = len(file_urls)
         files_processed = 0
 
