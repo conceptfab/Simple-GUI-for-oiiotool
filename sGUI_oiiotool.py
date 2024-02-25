@@ -19,32 +19,41 @@ from PySide6.QtWidgets import (
 
 
 def convert_to_tx(input_file, output_file, add_runstats=False):
-    command = ["oiiotool.exe", input_file, "-otex", output_file]
-    if add_runstats:
-        command.append("--runstats")
-    process = subprocess.Popen(
-        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-    )
-    stdout, stderr = process.communicate()
-    return stdout, stderr
+    try:
+        command = ["oiiotool.exe", input_file, "-otex", output_file]
+        if add_runstats:
+            command.append("--runstats")
+        process = subprocess.Popen(
+            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+        stdout, stderr = process.communicate()
+        return stdout, stderr
+    except Exception as e:
+        return "", str(e)
 
 
 def check_tx_file(tx_file):
-    command = ["iinfo.exe", "-v", tx_file]
-    process = subprocess.Popen(
-        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-    )
-    stdout, stderr = process.communicate()
-    return stdout, stderr
+    try:
+        command = ["iinfo.exe", "-v", tx_file]
+        process = subprocess.Popen(
+            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+        stdout, stderr = process.communicate()
+        return stdout, stderr
+    except Exception as e:
+        return "", str(e)
 
 
 def convert_tx_to_tif(tx_file, output_tif):
-    command = ["oiiotool.exe", tx_file, "-o", output_tif]
-    process = subprocess.Popen(
-        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-    )
-    stdout, stderr = process.communicate()
-    return stdout, stderr
+    try:
+        command = ["oiiotool.exe", tx_file, "-o", output_tif]
+        process = subprocess.Popen(
+            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+        stdout, stderr = process.communicate()
+        return stdout, stderr
+    except Exception as e:
+        return "", str(e)
 
 
 class DragDropWidget(QWidget):
@@ -308,7 +317,7 @@ class DragDropWidget(QWidget):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     widget = DragDropWidget()
-    widget.setWindowTitle("Simple GUI for oiiotool 0.25")
+    widget.setWindowTitle("Simple GUI for oiiotool 0.26")
     widget.resize(800, 600)
     widget.show()
     sys.exit(app.exec())
