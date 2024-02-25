@@ -2,8 +2,8 @@ import os
 import subprocess
 import sys
 
-from PySide6.QtCore import QMimeData, Qt
-from PySide6.QtGui import QColor, QDragEnterEvent, QDropEvent
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QDragEnterEvent, QDropEvent
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -222,54 +222,55 @@ class DragDropWidget(QWidget):
         else:
             event.ignore()
 
-    def process_dropped_files(self, urls):
-        processed_files = []
-        error_messages = []  # Storing error messages
-        console_output = []  # Storing console data
+    def process_tx_file(self, file_path):
+        """
+        Process .tx file based on user choice.
+        """
+        stdout, stderr = "", ""
+        if not os.path.exists(file_path):
+            stderr = f"File not found: {file_path}"
+        elif file_path.endswith(".tx") and not self.checkbox2.isChecked():
+            stdout, stderr = check_tx_file(file_path)
+        elif file_path.endswith(".tx") and self.checkbox2.isChecked():
+            output_file_path = os.path.splitext(file_path)[0] + ".tif"
+            if os.path.exists(output_file_path):
+                overwrite = self.confirm_overwrite(output_file_path)
+                if not overwrite:
+                    return stdout, stderr
+            stdout, stderr = convert_tx_to_tif(file_path, output_file_path)
+        else:
+            output_file_path = os.path.splitext(file_path)[0] + ".tx"
+            if os.path.exists(output_file_path):
+                overwrite = self.confirm_overwrite(output_file_path)
+                if not overwrite:
+                    return stdout, stderr
+            stdout, stderr = convert_to_tx(file_path, output_file_path, self.checkbox1.isChecked())
 
-        total_files = len(urls)
+        return stdout, stderr
+
+    def process_dropped_files(self, file_urls):
+        """
+        Process files dropped onto the widget.
+        """
+        processed_files = []
+        error_messages = []
+        console_output = []
+        
+        total_files = len(file_urls)
         files_processed = 0
 
-        for url in urls:
+        for url in file_urls:
             file_path = url.toLocalFile()
 
-            if not os.path.exists(file_path):
-                error_messages.append(f"File not found: {file_path}")
-                continue
-
-            if file_path.endswith(".tx") and not self.checkbox2.isChecked():
-                stdout, stderr = check_tx_file(file_path)
+            try:
+                stdout, stderr = self.process_tx_file(file_path)
+                if stderr:
+                    error_messages.append(stderr)
+                if stdout:
+                    console_output.append(stdout)
                 processed_files.append(file_path)
-                if stderr:
-                    error_messages.append(stderr)
-                if stdout:
-                    console_output.append(stdout)
-            elif file_path.endswith(".tx") and self.checkbox2.isChecked():
-                output_file_path = os.path.splitext(file_path)[0] + ".tif"
-                if os.path.exists(output_file_path):
-                    overwrite = self.confirm_overwrite(output_file_path)
-                    if not overwrite:
-                        continue
-                stdout, stderr = convert_tx_to_tif(file_path, output_file_path)
-                processed_files.append(output_file_path)
-                if stderr:
-                    error_messages.append(stderr)
-                if stdout:
-                    console_output.append(stdout)
-            else:
-                output_file_path = os.path.splitext(file_path)[0] + ".tx"
-                if os.path.exists(output_file_path):
-                    overwrite = self.confirm_overwrite(output_file_path)
-                    if not overwrite:
-                        continue
-                stdout, stderr = convert_to_tx(
-                    file_path, output_file_path, self.checkbox1.isChecked()
-                )
-                processed_files.append(output_file_path)
-                if stderr:
-                    error_messages.append(stderr)
-                if stdout:
-                    console_output.append(stdout)
+            except Exception as e:
+                error_messages.append(str(e))
 
             files_processed += 1
             progress = int((files_processed / total_files) * 100)
@@ -278,7 +279,6 @@ class DragDropWidget(QWidget):
             console_output.append(f"File {file_path} has been processed.")
 
         self.update_status_bar(processed_files, error_messages)
-
         if console_output:
             self.update_console_text("\n".join(console_output))
 
