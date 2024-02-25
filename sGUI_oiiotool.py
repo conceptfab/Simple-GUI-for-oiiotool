@@ -261,6 +261,6 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     widget = DragDropWidget()
     widget.setWindowTitle("Simple GUI for oiiotool 0.2")
-    widget.resize(800, 600)
+    widget.resize(900, 600)
     widget.show()
     sys.exit(app.exec())
