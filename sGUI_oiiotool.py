@@ -123,7 +123,7 @@ class DragDropWidget(QWidget):
         )
 
         # Creating checkboxes
-        self.checkbox1 = QCheckBox("--runstats")
+        self.checkbox1 = QCheckBox("show stats")
         self.checkbox2 = QCheckBox("convert tx to tif")
 
         # Applying styles to checkboxes
@@ -132,9 +132,16 @@ class DragDropWidget(QWidget):
                 """
                 QCheckBox {
                     color: #FFFFFF;
+                    
                     font-family: 'Dank Mono', Arial;
                     font-size: 12px;
                     spacing: 10px;
+                }
+                QCheckBox::indicator:checked {
+                    background-color: #8a2be2;
+                }
+                QCheckBox::indicator:unchecked {
+                    background-color: #3b3b3b;
                 }
                 """
             )
