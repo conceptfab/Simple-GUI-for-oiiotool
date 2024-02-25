@@ -3,13 +3,15 @@ import subprocess
 import sys
 
 from PySide6.QtCore import QMimeData, Qt
-from PySide6.QtGui import QDragEnterEvent, QDropEvent, QFont
+from PySide6.QtGui import QColor, QDragEnterEvent, QDropEvent
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QMessageBox,
+    QProgressBar,
     QSizePolicy,
     QTextEdit,
     QVBoxLayout,
@@ -50,110 +52,149 @@ class DragDropWidget(QWidget):
     def __init__(self):
         super().__init__()
 
-        # Creating QTextEdit for status bar
-        self.status_text_edit = QTextEdit()
-        self.status_text_edit.setReadOnly(True)  # Setting read-only
+        # Setting Fusion style for the whole application
+        QApplication.setStyle("fusion")
 
-        # Creating QTextEdit for console information
-        self.console_text_edit = QTextEdit()
-        self.console_text_edit.setReadOnly(True)  # Setting read-only
-        self.console_text_edit.setSizePolicy(
-            QSizePolicy.Expanding, QSizePolicy.Expanding
-        )
-
-        # Creating label
         self.label = QLabel("Convert to TX file:")
         self.label.setAlignment(Qt.AlignCenter)
-
-        # Setting style for label
         self.label.setStyleSheet(
-            """
-            QLabel {
-                font-size: 16px;
-                font-weight: bold;
-                margin-bottom: 10px;
-                font-family: 'Dank Mono', Arial, sans-serif; /* Font family */
-            }
-        """
+            "font-family: 'Dank Mono', Arial; font-size: 16px; color: #FFFFFF;"
         )
+        self.label.setMinimumHeight(50)  # Ustawienie minimalnej wysokości
 
-        # Setting style for status bar
+        # Creating QTextEdit for status bar
+        self.status_text_edit = QTextEdit()
+        self.status_text_edit.setReadOnly(True)
         self.status_text_edit.setStyleSheet(
             """
             QTextEdit {
-                background-color: #f0f0f0;
-                border: 1px solid #ccc;
-                border-radius: 5px;
-                padding: 5px;
-                font-family: 'Dank Mono', Arial, sans-serif; /* Font family */
+                border: none;
+                background-color: #242424;
+                color: #FFFFFF;
+                font-family: 'Dank Mono', Arial;
+                font-size: 12px;
             }
-        """
+            """
         )
+        # Creating separator
+        separator = QFrame()
+        separator.setFrameShape(QFrame.VLine)
+        separator.setFrameShadow(QFrame.Sunken)
 
-        # Setting style for console information
+        # Creating QTextEdit for console information
+        self.console_text_edit = QTextEdit()
+        self.console_text_edit.setReadOnly(True)
         self.console_text_edit.setStyleSheet(
             """
             QTextEdit {
-                background-color: #000000;
-                border: 1px solid #ccc;
-                border-radius: 5px;
-                padding: 5px;
+                border: none;
+                background-color: #232323;
                 color: #FFFFFF;
-                font-family: 'Dank Mono', Arial, sans-serif; /* Font family */
+                font-family: 'Dank Mono', Arial;
+                font-size: 12px;
             }
-        """
+            """
         )
 
-        # Creating layout for widget
-        layout = QVBoxLayout()
-        layout.addWidget(self.label)
+        # Creating progress bar
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setTextVisible(False)
+        self.progress_bar.setStyleSheet(
+            """
+            QProgressBar {
+                border: none;
+                border-radius: 5px;
+                background-color: #232323; /* Background */
+                color: #FFFFFF; /* Text color */
+                height: 10px; /* Height */
+            }
+            QProgressBar::chunk {
+                background-color: #8a2be2; /* Dodger Blue */
+            }
+            """
+        )
 
-        # Creating and setting layout for checkboxes
-        checkboxes_layout = QHBoxLayout()
-        layout.addLayout(checkboxes_layout)
-
-        # Adding checkboxes
+        # Creating checkboxes
         self.checkbox1 = QCheckBox("--runstats")
         self.checkbox2 = QCheckBox("convert tx to tif")
 
-        layout.addWidget(self.status_text_edit)
-        layout.addWidget(self.console_text_edit)
-
-        # Setting additional styles for checkboxes
-        checkboxes = [
-            self.checkbox1,
-            self.checkbox2,
-        ]
-        for checkbox in checkboxes:
+        # Applying styles to checkboxes
+        for checkbox in (self.checkbox1, self.checkbox2):
             checkbox.setStyleSheet(
                 """
                 QCheckBox {
-                    spacing: 10px; /* Spacing between text and button */
-                    font-size: 12px; /* Text size */
-                    font-family: 'Dank Mono', Arial, sans-serif; /* Font family */
+                    color: #FFFFFF;
+                    font-family: 'Dank Mono', Arial;
+                    font-size: 12px;
+                    spacing: 10px;
                 }
-            """
+                """
             )
 
-        # Setting two columns for checkboxes
-        column1 = QVBoxLayout()
-        column2 = QVBoxLayout()
-        for i, checkbox in enumerate(checkboxes):
-            if i < len(checkboxes) / 2:
-                column1.addWidget(checkbox)
-            else:
-                column2.addWidget(checkbox)
+        # Creating layout
+        layout = QVBoxLayout()
+        layout.addWidget(self.label)
 
-        checkboxes_layout.addLayout(column1)
-        checkboxes_layout.addLayout(column2)
+        # Creating layout for checkboxes
+        checkboxes_layout = QHBoxLayout()
+        layout.addLayout(checkboxes_layout)
+
+        # Adding checkboxes to layout
+        checkboxes_layout.addWidget(self.checkbox1)
+        checkboxes_layout.addWidget(self.checkbox2)
+
+        # Adding QTextEdit to layout
+        layout.addWidget(self.status_text_edit)
+        layout.addWidget(separator)
+        layout.addWidget(self.console_text_edit)
+
+        # Adding progress bar to layout
+        layout.addWidget(self.progress_bar)
+
+        # Setting layout
+        self.setLayout(layout)
 
         # Setting drag and drop event handling
-        self.setLayout(layout)
         self.setAcceptDrops(True)
 
-        # Checking --runstats checkbox at startup
+        # Setting default values for checkboxes
         self.checkbox1.setChecked(True)
         self.checkbox2.setChecked(False)
+
+        # Adding custom style for scroll bars
+        self.setStyleSheet(
+            """
+            QScrollBar:vertical {
+                border: none;
+                background: #2c2c2c;
+                width: 10px;
+                margin: 0px; /* Usunięcie marginesu */
+            }
+            QScrollBar::handle:vertical {
+                background-color: #8a2be2;
+                min-height: 20px;
+                border-radius: 5px;
+            }
+            QScrollBar::add-line:vertical {
+                height: 0;
+                subcontrol-position: bottom;
+                subcontrol-origin: margin;
+            }
+            QScrollBar::sub-line:vertical {
+                height: 0;
+                subcontrol-position: top;
+                subcontrol-origin: margin;
+            }
+            QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {
+                border: none;
+                background: none;
+                color: none;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                background: none;
+            }
+            """
+        )
 
     def dragEnterEvent(self, event: QDragEnterEvent):
         if event.mimeData().hasUrls():
@@ -167,7 +208,10 @@ class DragDropWidget(QWidget):
             urls = mime_data.urls()
             processed_files = []
             error_messages = []  # Storing error messages
-            console_output = []  # Storing console output
+            console_output = []  # Storing console data
+
+            total_files = len(urls)
+            files_processed = 0
 
             for url in urls:
                 file_path = url.toLocalFile()
@@ -180,7 +224,7 @@ class DragDropWidget(QWidget):
                     stdout, stderr = check_tx_file(file_path)
                     processed_files.append(file_path)
                     if stderr:
-                        error_messages.append(stderr)  # Add error message to the list
+                        error_messages.append(stderr)
                     if stdout:
                         console_output.append(stdout)
                 elif file_path.endswith(".tx") and self.checkbox2.isChecked():
@@ -192,7 +236,7 @@ class DragDropWidget(QWidget):
                     stdout, stderr = convert_tx_to_tif(file_path, output_file_path)
                     processed_files.append(output_file_path)
                     if stderr:
-                        error_messages.append(stderr)  # Add error message to the list
+                        error_messages.append(stderr)
                     if stdout:
                         console_output.append(stdout)
                 else:
@@ -206,16 +250,18 @@ class DragDropWidget(QWidget):
                     )
                     processed_files.append(output_file_path)
                     if stderr:
-                        error_messages.append(stderr)  # Add error message to the list
+                        error_messages.append(stderr)
                     if stdout:
                         console_output.append(stdout)
 
-                # Add confirmation in console
+                files_processed += 1
+                progress = int((files_processed / total_files) * 100)
+                self.progress_bar.setValue(progress)
+
                 console_output.append(f"File {file_path} has been processed.")
 
             self.update_status_bar(processed_files, error_messages)
 
-            # Update console information window
             if console_output:
                 self.update_console_text("\n".join(console_output))
 
@@ -253,6 +299,9 @@ class DragDropWidget(QWidget):
 
         self.status_text_edit.setPlainText(status_text)
 
+        # Reset progress bar
+        self.progress_bar.setValue(0)
+
     def update_console_text(self, text):
         self.console_text_edit.setPlainText(text)
 
@@ -260,7 +309,7 @@ class DragDropWidget(QWidget):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     widget = DragDropWidget()
-    widget.setWindowTitle("Simple GUI for oiiotool 0.2")
-    widget.resize(900, 600)
+    widget.setWindowTitle("Simple GUI for oiiotool 0.25")
+    widget.resize(800, 600)
     widget.show()
     sys.exit(app.exec())
