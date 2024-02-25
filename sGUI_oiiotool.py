@@ -2,8 +2,8 @@ import os
 import subprocess
 import sys
 
-from PySide6.QtCore import QMimeData, Qt
-from PySide6.QtGui import QColor, QDragEnterEvent, QDropEvent
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QDragEnterEvent, QDropEvent
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -18,7 +18,18 @@ from PySide6.QtWidgets import (
 )
 
 
-def convert_to_tx(input_file, output_file, add_runstats=False):
+def convert_to_tx(input_file: str, output_file: str, add_runstats: bool = False) -> tuple:
+    """
+    Convert input file to a .tx file.
+
+    Args:
+        input_file (str): Path to the input file.
+        output_file (str): Path to save the output .tx file.
+        add_runstats (bool, optional): Whether to add runstats. Defaults to False.
+
+    Returns:
+        tuple: stdout and stderr from the process.
+    """
     try:
         command = ["oiiotool.exe", input_file, "-otex", output_file]
         if add_runstats:
@@ -32,7 +43,16 @@ def convert_to_tx(input_file, output_file, add_runstats=False):
         return "", str(e)
 
 
-def check_tx_file(tx_file):
+def check_tx_file(tx_file: str) -> tuple:
+    """
+    Check information of a .tx file.
+
+    Args:
+        tx_file (str): Path to the .tx file.
+
+    Returns:
+        tuple: stdout and stderr from the process.
+    """
     try:
         command = ["iinfo.exe", "-v", tx_file]
         process = subprocess.Popen(
@@ -44,7 +64,17 @@ def check_tx_file(tx_file):
         return "", str(e)
 
 
-def convert_tx_to_tif(tx_file, output_tif):
+def convert_tx_to_tif(tx_file: str, output_tif: str) -> tuple:
+    """
+    Convert .tx file to .tif file.
+
+    Args:
+        tx_file (str): Path to the input .tx file.
+        output_tif (str): Path to save the output .tif file.
+
+    Returns:
+        tuple: stdout and stderr from the process.
+    """
     try:
         command = ["oiiotool.exe", tx_file, "-o", output_tif]
         process = subprocess.Popen(
@@ -58,6 +88,9 @@ def convert_tx_to_tif(tx_file, output_tif):
 
 class DragDropWidget(QWidget):
     def __init__(self):
+        """
+        Initialize the DragDropWidget.
+        """
         super().__init__()
 
         # Setting Fusion style for the whole application
@@ -68,7 +101,7 @@ class DragDropWidget(QWidget):
         self.label.setStyleSheet(
             "font-family: 'Dank Mono', Arial; font-size: 16px; color: #2196f3;"
         )
-        self.label.setMinimumHeight(50)  # Ustawienie minimalnej wysokości
+        self.label.setMinimumHeight(50)  # Setting minimum height
 
         # Creating QTextEdit for status bar
         self.status_text_edit = QTextEdit()
@@ -179,7 +212,7 @@ class DragDropWidget(QWidget):
                 border: none;
                 background: #2c2c2c;
                 width: 10px;
-                margin: 0px; /* Usunięcie marginesu */
+                margin: 0px; /* Remove margin */
             }
             QScrollBar::handle:vertical {
                 background-color: #2196f3;
@@ -208,12 +241,24 @@ class DragDropWidget(QWidget):
         )
 
     def dragEnterEvent(self, event: QDragEnterEvent):
+        """
+        Handle drag enter event.
+
+        Args:
+            event (QDragEnterEvent): The event object.
+        """
         if event.mimeData().hasUrls():
             event.accept()
         else:
             event.ignore()
 
     def dropEvent(self, event: QDropEvent):
+        """
+        Handle drop event.
+
+        Args:
+            event (QDropEvent): The event object.
+        """
         mime_data = event.mimeData()
         if mime_data.hasUrls():
             urls = mime_data.urls()
@@ -222,54 +267,64 @@ class DragDropWidget(QWidget):
         else:
             event.ignore()
 
-    def process_dropped_files(self, urls):
-        processed_files = []
-        error_messages = []  # Storing error messages
-        console_output = []  # Storing console data
+    def process_tx_file(self, file_path: str) -> tuple:
+        """
+        Process .tx file based on user choice.
 
-        total_files = len(urls)
+        Args:
+            file_path (str): Path to the file.
+
+        Returns:
+            tuple: stdout and stderr from the process.
+        """
+        stdout, stderr = "", ""
+        if not os.path.exists(file_path):
+            stderr = f"File not found: {file_path}"
+        elif file_path.endswith(".tx") and not self.checkbox2.isChecked():
+            stdout, stderr = check_tx_file(file_path)
+        elif file_path.endswith(".tx") and self.checkbox2.isChecked():
+            output_file_path = os.path.splitext(file_path)[0] + ".tif"
+            if os.path.exists(output_file_path):
+                overwrite = self.confirm_overwrite(output_file_path)
+                if not overwrite:
+                    return stdout, stderr
+            stdout, stderr = convert_tx_to_tif(file_path, output_file_path)
+        else:
+            output_file_path = os.path.splitext(file_path)[0] + ".tx"
+            if os.path.exists(output_file_path):
+                overwrite = self.confirm_overwrite(output_file_path)
+                if not overwrite:
+                    return stdout, stderr
+            stdout, stderr = convert_to_tx(file_path, output_file_path, self.checkbox1.isChecked())
+
+        return stdout, stderr
+
+    def process_dropped_files(self, file_urls: list):
+        """
+        Process files dropped onto the widget.
+
+        Args:
+            file_urls (list): List of file URLs.
+        """
+        processed_files = []
+        error_messages = []
+        console_output = []
+        
+        total_files = len(file_urls)
         files_processed = 0
 
-        for url in urls:
+        for url in file_urls:
             file_path = url.toLocalFile()
 
-            if not os.path.exists(file_path):
-                error_messages.append(f"File not found: {file_path}")
-                continue
-
-            if file_path.endswith(".tx") and not self.checkbox2.isChecked():
-                stdout, stderr = check_tx_file(file_path)
+            try:
+                stdout, stderr = self.process_tx_file(file_path)
+                if stderr:
+                    error_messages.append(stderr)
+                if stdout:
+                    console_output.append(stdout)
                 processed_files.append(file_path)
-                if stderr:
-                    error_messages.append(stderr)
-                if stdout:
-                    console_output.append(stdout)
-            elif file_path.endswith(".tx") and self.checkbox2.isChecked():
-                output_file_path = os.path.splitext(file_path)[0] + ".tif"
-                if os.path.exists(output_file_path):
-                    overwrite = self.confirm_overwrite(output_file_path)
-                    if not overwrite:
-                        continue
-                stdout, stderr = convert_tx_to_tif(file_path, output_file_path)
-                processed_files.append(output_file_path)
-                if stderr:
-                    error_messages.append(stderr)
-                if stdout:
-                    console_output.append(stdout)
-            else:
-                output_file_path = os.path.splitext(file_path)[0] + ".tx"
-                if os.path.exists(output_file_path):
-                    overwrite = self.confirm_overwrite(output_file_path)
-                    if not overwrite:
-                        continue
-                stdout, stderr = convert_to_tx(
-                    file_path, output_file_path, self.checkbox1.isChecked()
-                )
-                processed_files.append(output_file_path)
-                if stderr:
-                    error_messages.append(stderr)
-                if stdout:
-                    console_output.append(stdout)
+            except Exception as e:
+                error_messages.append(str(e))
 
             files_processed += 1
             progress = int((files_processed / total_files) * 100)
@@ -278,11 +333,19 @@ class DragDropWidget(QWidget):
             console_output.append(f"File {file_path} has been processed.")
 
         self.update_status_bar(processed_files, error_messages)
-
         if console_output:
             self.update_console_text("\n".join(console_output))
 
-    def confirm_overwrite(self, file_path):
+    def confirm_overwrite(self, file_path: str) -> bool:
+        """
+        Confirm file overwrite.
+
+        Args:
+            file_path (str): Path to the file to be overwritten.
+
+        Returns:
+            bool: True if overwrite confirmed, False otherwise.
+        """
         msg_box = QMessageBox()
         msg_box.setWindowTitle("Confirm Overwrite")
         msg_box.setText(
@@ -296,7 +359,14 @@ class DragDropWidget(QWidget):
         response = msg_box.exec()
         return response == QMessageBox.Yes
 
-    def update_status_bar(self, processed_files, error_messages):
+    def update_status_bar(self, processed_files: list, error_messages: list):
+        """
+        Update status bar.
+
+        Args:
+            processed_files (list): List of processed file paths.
+            error_messages (list): List of error messages.
+        """
         status_text = ""
         if processed_files:
             num_files = len(processed_files)
@@ -315,14 +385,20 @@ class DragDropWidget(QWidget):
         # Reset progress bar
         self.progress_bar.setValue(0)
 
-    def update_console_text(self, text):
+    def update_console_text(self, text: str):
+        """
+        Update console text.
+
+        Args:
+            text (str): Text to display in the console.
+        """
         self.console_text_edit.setPlainText(text)
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     widget = DragDropWidget()
-    widget.setWindowTitle("Simple GUI for oiiotool 0.26")
+    widget.setWindowTitle("Simple GUI for oiiotool 0.30")
     widget.resize(800, 600)
     widget.show()
     sys.exit(app.exec())
