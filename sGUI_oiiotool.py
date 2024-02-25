@@ -136,6 +136,9 @@ class DragDropWidget(QWidget):
                     font-size: 12px;
                     spacing: 10px;
                 }
+                QCheckBox::indicator:unchecked {
+                    background-color: #4d4d4d;
+                }
                 """
             )
 
