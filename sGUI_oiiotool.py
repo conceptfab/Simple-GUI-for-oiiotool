@@ -66,7 +66,7 @@ class DragDropWidget(QWidget):
         self.label = QLabel("Convert to TX file:")
         self.label.setAlignment(Qt.AlignCenter)
         self.label.setStyleSheet(
-            "font-family: 'Dank Mono', Arial; font-size: 16px; color: #FFFFFF;"
+            "font-family: 'Dank Mono', Arial; font-size: 16px; color: #2196f3;"
         )
         self.label.setMinimumHeight(50)  # Ustawienie minimalnej wysokości
 
@@ -117,7 +117,7 @@ class DragDropWidget(QWidget):
                 height: 10px; /* Height */
             }
             QProgressBar::chunk {
-                background-color: #8a2be2;
+                background-color: #2196f3;
             }
             """
         )
@@ -135,12 +135,6 @@ class DragDropWidget(QWidget):
                     font-family: 'Dank Mono', Arial;
                     font-size: 12px;
                     spacing: 10px;
-                }
-                QCheckBox::indicator:checked {
-                    background-color: #8a2be2;
-                }
-                QCheckBox::indicator:unchecked {
-                    background-color: #3b3b3b;
                 }
                 """
             )
@@ -185,7 +179,7 @@ class DragDropWidget(QWidget):
                 margin: 0px; /* Usunięcie marginesu */
             }
             QScrollBar::handle:vertical {
-                background-color: #8a2be2;
+                background-color: #2196f3;
                 min-height: 20px;
                 border-radius: 5px;
             }
