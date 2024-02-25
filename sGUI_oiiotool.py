@@ -117,7 +117,7 @@ class DragDropWidget(QWidget):
                 height: 10px; /* Height */
             }
             QProgressBar::chunk {
-                background-color: #8a2be2; /* Dodger Blue */
+                background-color: #8a2be2;
             }
             """
         )
@@ -214,68 +214,70 @@ class DragDropWidget(QWidget):
         mime_data = event.mimeData()
         if mime_data.hasUrls():
             urls = mime_data.urls()
-            processed_files = []
-            error_messages = []  # Storing error messages
-            console_output = []  # Storing console data
-
-            total_files = len(urls)
-            files_processed = 0
-
-            for url in urls:
-                file_path = url.toLocalFile()
-
-                if not os.path.exists(file_path):
-                    error_messages.append(f"File not found: {file_path}")
-                    continue
-
-                if file_path.endswith(".tx") and not self.checkbox2.isChecked():
-                    stdout, stderr = check_tx_file(file_path)
-                    processed_files.append(file_path)
-                    if stderr:
-                        error_messages.append(stderr)
-                    if stdout:
-                        console_output.append(stdout)
-                elif file_path.endswith(".tx") and self.checkbox2.isChecked():
-                    output_file_path = os.path.splitext(file_path)[0] + ".tif"
-                    if os.path.exists(output_file_path):
-                        overwrite = self.confirm_overwrite(output_file_path)
-                        if not overwrite:
-                            continue
-                    stdout, stderr = convert_tx_to_tif(file_path, output_file_path)
-                    processed_files.append(output_file_path)
-                    if stderr:
-                        error_messages.append(stderr)
-                    if stdout:
-                        console_output.append(stdout)
-                else:
-                    output_file_path = os.path.splitext(file_path)[0] + ".tx"
-                    if os.path.exists(output_file_path):
-                        overwrite = self.confirm_overwrite(output_file_path)
-                        if not overwrite:
-                            continue
-                    stdout, stderr = convert_to_tx(
-                        file_path, output_file_path, self.checkbox1.isChecked()
-                    )
-                    processed_files.append(output_file_path)
-                    if stderr:
-                        error_messages.append(stderr)
-                    if stdout:
-                        console_output.append(stdout)
-
-                files_processed += 1
-                progress = int((files_processed / total_files) * 100)
-                self.progress_bar.setValue(progress)
-
-                console_output.append(f"File {file_path} has been processed.")
-
-            self.update_status_bar(processed_files, error_messages)
-
-            if console_output:
-                self.update_console_text("\n".join(console_output))
-
+            self.process_dropped_files(urls)
             event.accept()
         else:
             event.ignore()
+
+    def process_dropped_files(self, urls):
+        processed_files = []
+        error_messages = []  # Storing error messages
+        console_output = []  # Storing console data
+
+        total_files = len(urls)
+        files_processed = 0
+
+        for url in urls:
+            file_path = url.toLocalFile()
+
+            if not os.path.exists(file_path):
+                error_messages.append(f"File not found: {file_path}")
+                continue
+
+            if file_path.endswith(".tx") and not self.checkbox2.isChecked():
+                stdout, stderr = check_tx_file(file_path)
+                processed_files.append(file_path)
+                if stderr:
+                    error_messages.append(stderr)
+                if stdout:
+                    console_output.append(stdout)
+            elif file_path.endswith(".tx") and self.checkbox2.isChecked():
+                output_file_path = os.path.splitext(file_path)[0] + ".tif"
+                if os.path.exists(output_file_path):
+                    overwrite = self.confirm_overwrite(output_file_path)
+                    if not overwrite:
+                        continue
+                stdout, stderr = convert_tx_to_tif(file_path, output_file_path)
+                processed_files.append(output_file_path)
+                if stderr:
+                    error_messages.append(stderr)
+                if stdout:
+                    console_output.append(stdout)
+            else:
+                output_file_path = os.path.splitext(file_path)[0] + ".tx"
+                if os.path.exists(output_file_path):
+                    overwrite = self.confirm_overwrite(output_file_path)
+                    if not overwrite:
+                        continue
+                stdout, stderr = convert_to_tx(
+                    file_path, output_file_path, self.checkbox1.isChecked()
+                )
+                processed_files.append(output_file_path)
+                if stderr:
+                    error_messages.append(stderr)
+                if stdout:
+                    console_output.append(stdout)
+
+            files_processed += 1
+            progress = int((files_processed / total_files) * 100)
+            self.progress_bar.setValue(progress)
+
+            console_output.append(f"File {file_path} has been processed.")
+
+        self.update_status_bar(processed_files, error_messages)
+
+        if console_output:
+            self.update_console_text("\n".join(console_output))
 
     def confirm_overwrite(self, file_path):
         msg_box = QMessageBox()
@@ -317,7 +319,7 @@ class DragDropWidget(QWidget):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     widget = DragDropWidget()
-    widget.setWindowTitle("Simple GUI for oiiotool 0.26")
+    widget.setWindowTitle("Simple GUI for oiiotool 0.25")
     widget.resize(800, 600)
     widget.show()
     sys.exit(app.exec())
