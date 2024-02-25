@@ -3,7 +3,7 @@ import subprocess
 import sys
 
 from PySide6.QtCore import QMimeData, Qt
-from PySide6.QtGui import QColor, QDragEnterEvent, QDropEvent, QFont
+from PySide6.QtGui import QColor, QDragEnterEvent, QDropEvent
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -51,31 +51,13 @@ class DragDropWidget(QWidget):
     def __init__(self):
         super().__init__()
 
-        # Setting dark style for the whole widget
-        self.setStyleSheet(
-            """
-            QWidget {
-                background-color: #333333; /* Background */
-                color: #FFFFFF; /* Text color */
-                font-family: 'Dank Mono', Arial, sans-serif; /* Font family */
-            }
-            """
-        )
-
-        # Setting dark style for labels
-        label_style = """
-            QLabel {
-                font-size: 16px;
-                font-weight: bold;
-                margin-bottom: 10px;
-                font-family: 'Dank Mono', Arial, sans-serif; /* Font family */
-            }
-        """
+        # Setting Fusion style for the whole application
+        QApplication.setStyle("fusion")
 
         # Creating label "Convert to TX file:"
         self.label = QLabel("Convert to TX file:")
         self.label.setAlignment(Qt.AlignCenter)
-        self.label.setStyleSheet(label_style)
+        self.label.setStyleSheet("font-family: 'Dank Mono', Arial; font-size: 16px; color: #FFFFFF;")
 
         # Creating QTextEdit for status bar
         self.status_text_edit = QTextEdit()
@@ -83,69 +65,65 @@ class DragDropWidget(QWidget):
         self.status_text_edit.setStyleSheet(
             """
             QTextEdit {
-                border: 1px solid #272727;
-                border-radius: 5px;
-                background-color: #222222; /* Background */
-                color: #FFFFFF; /* Text color */
-            }
-            QTextEdit::-webkit-scrollbar {
-                width: 8px;
-                background-color: #333333;
-            }
-            QTextEdit::-webkit-scrollbar-thumb {
-                background-color: #555555;
-                border-radius: 4px;
+                border: none;
+                background-color: #2c2c2c;
+                color: #FFFFFF;
+                font-family: 'Dank Mono', Arial;
+                font-size: 12px;
             }
             """
         )
-        self.status_text_edit.setMinimumHeight(50)  # Minimum height for QTextEdit
 
         # Creating QTextEdit for console information
         self.console_text_edit = QTextEdit()
         self.console_text_edit.setReadOnly(True)
-        self.console_text_edit.setSizePolicy(
-            QSizePolicy.Expanding, QSizePolicy.Expanding
-        )
         self.console_text_edit.setStyleSheet(
             """
             QTextEdit {
-                border: 1px solid #272727;
-                border-radius: 5px;
-                background-color: #000000; /* Background */
-                color: #FFFFFF; /* Text color */
-                font-family: 'Dank Mono', Arial, sans-serif; /* Font family */
-            }
-            QTextEdit::-webkit-scrollbar {
-                width: 8px;
-                background-color: #333333;
-            }
-            QTextEdit::-webkit-scrollbar-thumb {
-                background-color: #555555;
-                border-radius: 4px;
+                border: none;
+                background-color: #232323;
+                color: #FFFFFF;
+                font-family: 'Dank Mono', Arial;
+                font-size: 12px;
             }
             """
         )
-        self.console_text_edit.setMinimumHeight(50)  # Minimum height for QTextEdit
 
         # Creating progress bar
         self.progress_bar = QProgressBar()
+        self.progress_bar.setTextVisible(False)
         self.progress_bar.setStyleSheet(
             """
             QProgressBar {
                 border: none;
                 border-radius: 5px;
-                background-color: #222222; /* Background */
+                background-color: #232323; /* Background */
                 color: #FFFFFF; /* Text color */
-                height: 5px; /* Height */
+                height: 10px; /* Height */
             }
             QProgressBar::chunk {
-                background-color: #1E90FF; /* Dodger Blue */
+                background-color: #8a2be2; /* Dodger Blue */
             }
             """
         )
 
-        # Adding text to progress bar
-        self.progress_bar.setTextVisible(False)
+        # Creating checkboxes
+        self.checkbox1 = QCheckBox("--runstats")
+        self.checkbox2 = QCheckBox("convert tx to tif")
+
+        # Applying styles to checkboxes
+        for checkbox in (self.checkbox1, self.checkbox2):
+            checkbox.setStyleSheet(
+                """
+                QCheckBox {
+                    color: #FFFFFF;
+                
+                    font-family: 'Dank Mono', Arial;
+                    font-size: 12px;
+                    spacing: 10px;
+                }
+                """
+            )
 
         # Creating layout
         layout = QVBoxLayout()
@@ -154,20 +132,6 @@ class DragDropWidget(QWidget):
         # Creating layout for checkboxes
         checkboxes_layout = QHBoxLayout()
         layout.addLayout(checkboxes_layout)
-
-        # Adding checkboxes
-        self.checkbox1 = QCheckBox("--runstats")
-        self.checkbox2 = QCheckBox("convert tx to tif")
-
-        # Setting style for checkboxes
-        checkbox_style = """
-            QCheckBox {
-                spacing: 10px; /* Spacing between text and button */
-                font-size: 12px; /* Text size */
-            }
-        """
-        self.checkbox1.setStyleSheet(checkbox_style)
-        self.checkbox2.setStyleSheet(checkbox_style)
 
         # Adding checkboxes to layout
         checkboxes_layout.addWidget(self.checkbox1)
