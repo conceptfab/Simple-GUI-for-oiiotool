@@ -1,3 +1,4 @@
+import logging
 import os
 import subprocess
 import sys
@@ -17,6 +18,71 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+logging.basicConfig(level=logging.INFO)
+
+
+def get_script_directory():
+    """
+    Get the directory path of the script.
+
+    Returns:
+        str: Directory path of the script.
+    """
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+def check_required_files(console_text_edit):
+    """
+    Check for the presence of required files.
+
+    Args:
+        console_text_edit (QTextEdit): Text edit widget for console information.
+
+    Returns:
+        bool: True if all required files are found, False otherwise.
+    """
+    script_directory = get_script_directory()
+    required_files = [os.path.join(script_directory, "oiiotool.exe"), os.path.join(script_directory, "iinfo.exe")]
+    missing_files = [
+        file
+        for file in required_files
+        if not os.path.exists(file)
+    ]
+
+    if missing_files:
+        error_message = "Missing required files in the script folder:\n" + "\n".join(
+            missing_files
+        )
+        console_text_edit.append(error_message)
+        logging.error(error_message)
+        return False
+    else:
+        console_text_edit.append("All required files found.")
+        return True
+
+
+def run_with_version(console_text_edit, file_path):
+    """
+    Run the executable file with the --version argument.
+
+    Args:
+        console_text_edit (QTextEdit): Text edit widget for console information.
+        file_path (str): Path to the executable file.
+    """
+    try:
+        command = [file_path, "--version"]
+        result = subprocess.run(
+            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+        version_info = result.stdout.strip()
+        console_text_edit.append(f"{file_path}: {version_info}")
+        return version_info
+    except Exception as e:
+        error_message = f"An error occurred while running {file_path}: {e}"
+        console_text_edit.append(error_message)
+        logging.error(error_message)
+        return None
+
 
 def convert_to_tx(
     input_file: str, output_file: str, add_runstats: bool = False
@@ -33,15 +99,22 @@ def convert_to_tx(
         tuple: stdout and stderr from the process.
     """
     try:
-        command = ["oiiotool.exe", input_file, "-otex", output_file]
+        oiiotool_path = os.path.join(get_script_directory(), "oiiotool.exe")
+        command = [oiiotool_path, input_file, "-otex", output_file]
         if add_runstats:
             command.append("--runstats")
         process = subprocess.Popen(
             command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
         stdout, stderr = process.communicate()
+        if stdout:
+            logging.info("Standard output: %s", stdout)
+        if stderr:
+            logging.error("Standard error: %s", stderr)
         return stdout, stderr
     except Exception as e:
+        error_message = f"An error occurred during conversion to .tx: {e}"
+        logging.error(error_message)
         return "", str(e)
 
 
@@ -56,13 +129,20 @@ def check_tx_file(tx_file: str) -> tuple:
         tuple: stdout and stderr from the process.
     """
     try:
-        command = ["iinfo.exe", "-v", tx_file]
+        iinfo_path = os.path.join(get_script_directory(), "iinfo.exe")
+        command = [iinfo_path, "-v", tx_file]
         process = subprocess.Popen(
             command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
         stdout, stderr = process.communicate()
+        if stdout:
+            logging.info("Standard output: %s", stdout)
+        if stderr:
+            logging.error("Standard error: %s", stderr)
         return stdout, stderr
     except Exception as e:
+        error_message = f"An error occurred while checking .tx file: {e}"
+        logging.error(error_message)
         return "", str(e)
 
 
@@ -78,13 +158,20 @@ def convert_tx_to_tif(tx_file: str, output_tif: str) -> tuple:
         tuple: stdout and stderr from the process.
     """
     try:
-        command = ["oiiotool.exe", tx_file, "-o", output_tif]
+        oiiotool_path = os.path.join(get_script_directory(), "oiiotool.exe")
+        command = [oiiotool_path, tx_file, "-o", output_tif]
         process = subprocess.Popen(
             command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
         stdout, stderr = process.communicate()
+        if stdout:
+            logging.info("Standard output: %s", stdout)
+        if stderr:
+            logging.error("Standard error: %s", stderr)
         return stdout, stderr
     except Exception as e:
+        error_message = f"An error occurred during conversion from .tx to .tif: {e}"
+        logging.error(error_message)
         return "", str(e)
 
 
@@ -388,20 +475,25 @@ class DragDropWidget(QWidget):
         # Reset progress bar
         self.progress_bar.setValue(0)
 
-    def update_console_text(self, text: str):
+    def update_console_text(self, text):
         """
         Update console text.
 
         Args:
             text (str): Text to display in the console.
         """
-        self.console_text_edit.setPlainText(text)
+        self.console_text_edit.append(text)
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     widget = DragDropWidget()
-    widget.setWindowTitle("Simple GUI for oiiotool 0.30")
+    widget.setWindowTitle("Simple GUI for oiiotool 0.35")
     widget.resize(800, 600)
-    widget.show()
-    sys.exit(app.exec())
+    if check_required_files(widget.console_text_edit):
+        for file in ["oiiotool.exe", "iinfo.exe"]:
+            run_with_version(
+                widget.console_text_edit, os.path.join(get_script_directory(), file)
+            )
+        widget.show()
+        sys.exit(app.exec())
