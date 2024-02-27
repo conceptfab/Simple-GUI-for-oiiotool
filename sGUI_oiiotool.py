@@ -497,3 +497,17 @@ if __name__ == "__main__":
             )
         widget.show()
         sys.exit(app.exec())
+
+
+# if __name__ == "__main__":
+#     app = QApplication(sys.argv)
+#     widget = DragDropWidget()
+#     widget.setWindowTitle("Simple GUI for oiiotool 0.40")
+#     widget.resize(800, 600)
+#     if check_required_files(widget.console_text_edit):
+#         for file in ["oiiotool.exe", "iinfo.exe"]:
+#             run_with_version(
+#                 widget.console_text_edit, os.path.join(get_script_directory(), file)
+#             )
+#         widget.show()
+#         sys.exit(app.exec())
